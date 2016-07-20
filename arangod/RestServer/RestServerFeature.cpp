@@ -34,7 +34,6 @@
 #include "Cluster/RestShardHandler.h"
 #include "Dispatcher/DispatcherFeature.h"
 #include "GeneralServer/GeneralServer.h"
-//#include "GeneralServer/HttpsServer.h"
 #include "GeneralServer/RestHandlerFactory.h"
 #include "ProgramOptions/Parameters.h"
 #include "ProgramOptions/ProgramOptions.h"
@@ -343,38 +342,29 @@ void RestServerFeature::buildServers() {
   EndpointFeature* endpoint =
       application_features::ApplicationServer::getFeature<EndpointFeature>(
           "Endpoint");
-
-  // unencrypted HTTP endpoints
-  GeneralServer* httpServer = new GeneralServer(
-      _keepAliveTimeout, _allowMethodOverride, _accessControlAllowOrigins);
-
-  // YYY #warning FRANK filter list
   auto const& endpointList = endpoint->endpointList();
-  httpServer->setEndpointList(&endpointList);
-  _servers.push_back(httpServer);
 
-  // ssl endpoints
+  // check if endpointList contains ssl featured server
+  SSL_CTX* sslContext = nullptr;
   if (endpointList.hasSsl()) {
     SslServerFeature* ssl =
         application_features::ApplicationServer::getFeature<SslServerFeature>(
             "SslServer");
 
-    // check the ssl context
     if (ssl->sslContext() == nullptr) {
       LOG(FATAL) << "no ssl context is known, cannot create https server, "
                     "please use the '--ssl.keyfile' option";
       FATAL_ERROR_EXIT();
     }
-
-    SSL_CTX* sslContext = ssl->sslContext();
-
-    // https
-    httpServer = new GeneralServer(_keepAliveTimeout, _allowMethodOverride,
-                                   _accessControlAllowOrigins, sslContext);
-
-    httpServer->setEndpointList(&endpointList);
-    _servers.push_back(httpServer);
+    sslContext = ssl->sslContext();
   }
+
+  GeneralServer* server =
+      new GeneralServer(_keepAliveTimeout, _allowMethodOverride,
+                        _accessControlAllowOrigins, sslContext);
+
+  server->setEndpointList(&endpointList);
+  _servers.push_back(server);
 }
 
 void RestServerFeature::defineHandlers() {
