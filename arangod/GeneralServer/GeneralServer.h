@@ -31,8 +31,8 @@
 #include "Basics/Mutex.h"
 #include "Endpoint/ConnectionInfo.h"
 #include "GeneralServer/RestHandler.h"
-#include "GeneralServer/GeneralHttpTask.h"
-#include "GeneralServer/GeneralHttpsTask.h"
+#include "GeneralServer/HttpCommTask.h"
+#include "GeneralServer/HttpsCommTask.h"
 #include <openssl/ssl.h>
 
 namespace arangodb {
