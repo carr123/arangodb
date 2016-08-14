@@ -25,13 +25,14 @@
 #ifndef ARANGOD_HTTP_SERVER_HTTP_COMM_TASK_H
 #define ARANGOD_HTTP_SERVER_HTTP_COMM_TASK_H 1
 
-#include "Scheduler/SocketTask.h"
+#include "Scheduler/SocketTask2.h"
 
 #include <openssl/ssl.h>
 
 #include "Basics/Mutex.h"
 #include "Basics/StringBuffer.h"
 #include "Basics/WorkItem.h"
+#include "Rest/GeneralResponse.h"
 
 #include <deque>
 namespace arangodb {
@@ -41,12 +42,12 @@ class GeneralResponse;
 namespace rest {
 class GeneralServer;
 
-class GeneralCommTask : public SocketTask, public RequestStatisticsAgent {
+class GeneralCommTask : public SocketTask2, public RequestStatisticsAgent {
   GeneralCommTask(GeneralCommTask const&) = delete;
   GeneralCommTask const& operator=(GeneralCommTask const&) = delete;
 
  public:
-  GeneralCommTask(GeneralServer*, TRI_socket_t, ConnectionInfo&&,
+  GeneralCommTask(EventLoop2, GeneralServer*, TRI_socket_t, ConnectionInfo&&,
                   double keepAliveTimeout);
 
   // return whether or not the task desires to start a dispatcher thread
@@ -61,14 +62,13 @@ class GeneralCommTask : public SocketTask, public RequestStatisticsAgent {
   virtual ~GeneralCommTask();
 
   virtual void addResponse(GeneralResponse*) = 0;
-  virtual bool processRead() = 0;
   virtual void processRequest() = 0;
   virtual void resetState(bool) = 0;
 
-  virtual bool handleEvent(EventToken token,
-                           EventType events) override;  // called by TODO
+  // virtual bool handleEvent(EventToken token,
+  //                          EventType events) override;  // called by TODO
 
-  void cleanup() override final { SocketTask::cleanup(); }
+  // void cleanup() override final { SocketTask::cleanup(); }
 
   // clears the request object
   void clearRequest() {
@@ -77,7 +77,7 @@ class GeneralCommTask : public SocketTask, public RequestStatisticsAgent {
   }
 
  private:
-  void handleTimeout() override final;
+  // void handleTimeout() override final;
 
  protected:
   GeneralServer* const _server;

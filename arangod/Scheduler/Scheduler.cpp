@@ -26,6 +26,8 @@
 #include "Basics/win-utils.h"
 #endif
 
+#include <thread>
+
 #include "Scheduler.h"
 
 #include "Basics/MutexLocker.h"
@@ -41,6 +43,19 @@
 
 using namespace arangodb::basics;
 using namespace arangodb::rest;
+
+boost::asio::io_service IO_SERVICE;
+
+boost::shared_ptr<boost::asio::io_service::work> IO_WORK(
+    new boost::asio::io_service::work(IO_SERVICE));
+
+void runThread() {
+  LOG(ERR) << "running";
+  IO_SERVICE.run();
+  LOG(ERR) << "stopped";
+}
+
+EventLoop2 Scheduler::anyEventLoop() { return {._ioService = IO_SERVICE}; }
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief scheduler singleton
@@ -119,6 +134,8 @@ bool Scheduler::start(ConditionVariable* cv) {
       }
     }
   }
+
+  new std::thread(runThread);
 
   LOG(TRACE) << "all scheduler threads are up and running";
   return true;

@@ -32,7 +32,7 @@
 #include "Endpoint/ConnectionInfo.h"
 #include "GeneralServer/GeneralDefinitions.h"
 #include "GeneralServer/HttpCommTask.h"
-#include "GeneralServer/HttpsCommTask.h"
+// #include "GeneralServer/HttpsCommTask.h"
 #include "GeneralServer/RestHandler.h"
 
 namespace arangodb {

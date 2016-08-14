@@ -28,6 +28,7 @@
 #include "GeneralServer/GeneralServerFeature.h"
 #include "Scheduler/Scheduler.h"
 #include "Scheduler/SchedulerFeature.h"
+#include "Scheduler/SocketTask2.h"
 #include "Ssl/SslServerFeature.h"
 
 using namespace arangodb;
@@ -59,6 +60,7 @@ GeneralListenTask::GeneralListenTask(GeneralServer* server, Endpoint* endpoint,
 
 bool GeneralListenTask::handleConnected(TRI_socket_t socket,
                                         ConnectionInfo&& info) {
+#if 0
   GeneralCommTask* commTask = nullptr;
 
   switch (_connectionType) {
@@ -84,5 +86,11 @@ bool GeneralListenTask::handleConnected(TRI_socket_t socket,
   }
 
   SchedulerFeature::SCHEDULER->registerTask(commTask);
+#endif
+
+  auto commTask =
+      new HttpCommTask(SchedulerFeature::SCHEDULER->anyEventLoop(), _server,
+                       socket, std::move(info), _keepAliveTimeout);
+  commTask->start();
   return true;
 }

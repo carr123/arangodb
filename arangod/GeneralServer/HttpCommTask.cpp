@@ -52,10 +52,11 @@ size_t const HttpCommTask::MaximalBodySize = 512 * 1024 * 1024;      // 512 MB
 size_t const HttpCommTask::MaximalPipelineSize = 512 * 1024 * 1024;  // 512 MB
 size_t const HttpCommTask::RunCompactEvery = 500;
 
-HttpCommTask::HttpCommTask(GeneralServer* server, TRI_socket_t sock,
-                           ConnectionInfo&& info, double timeout)
-    : Task("HttpCommTask"),
-      GeneralCommTask(server, sock, std::move(info), timeout),
+HttpCommTask::HttpCommTask(EventLoop2 loop, GeneralServer* server,
+                           TRI_socket_t sock, ConnectionInfo&& info,
+                           double timeout)
+    : Task2(loop, "HttpCommTask"),
+      GeneralCommTask(loop, server, sock, std::move(info), timeout),
       _readPosition(0),
       _startPosition(0),
       _bodyPosition(0),
@@ -303,7 +304,7 @@ bool HttpCommTask::processRead() {
         // if the request asks to allow credentials, we'll check against the
         // configured whitelist of origins
         std::vector<std::string> const& accessControlAllowOrigins =
-          _server->trustedOrigins();
+            _server->trustedOrigins();
 
         if (!accessControlAllowOrigins.empty()) {
           if (accessControlAllowOrigins[0] == "*") {
@@ -314,13 +315,12 @@ bool HttpCommTask::processRead() {
             if (_origin[_origin.size() - 1] == '/') {
               // strip trailing slash
               auto result = std::find(accessControlAllowOrigins.begin(),
-                  accessControlAllowOrigins.end(),
-                  _origin.substr(0, _origin.size() - 1));
+                                      accessControlAllowOrigins.end(),
+                                      _origin.substr(0, _origin.size() - 1));
               _denyCredentials = (result == accessControlAllowOrigins.end());
             } else {
-              auto result =
-                std::find(accessControlAllowOrigins.begin(),
-                    accessControlAllowOrigins.end(), _origin);
+              auto result = std::find(accessControlAllowOrigins.begin(),
+                                      accessControlAllowOrigins.end(), _origin);
               _denyCredentials = (result == accessControlAllowOrigins.end());
             }
           } else {
@@ -376,8 +376,8 @@ bool HttpCommTask::processRead() {
                     << "'";
 
           // force a socket close, response will be ignored!
-          TRI_CLOSE_SOCKET(_commSocket);
-          TRI_invalidatesocket(&_commSocket);
+          // XXX TRI_CLOSE_SOCKET(_commSocket);
+          // XXX TRI_invalidatesocket(&_commSocket);
 
           // bad request, method not allowed
           handleSimpleError(GeneralResponse::ResponseCode::METHOD_NOT_ALLOWED);
@@ -433,7 +433,7 @@ bool HttpCommTask::processRead() {
   // readRequestBody might have changed, so cannot use else
   if (_readRequestBody) {
     if (_readBuffer->length() - _bodyPosition < _bodyLength) {
-      setKeepAliveTimeout(_keepAliveTimeout);
+      // XXX setKeepAliveTimeout(_keepAliveTimeout);
 
       // let client send more
       return false;
@@ -620,7 +620,7 @@ void HttpCommTask::processRequest() {
     }
   }
 
-  handler->setTaskId(_taskId, _loop);
+  // XXX handler->setTaskId(_taskId, _loop);
 
   // clear request object
   _request = nullptr;
@@ -777,6 +777,7 @@ void HttpCommTask::processCorsOptions() {
   handleResponse(&response);
 }
 
+#if 0
 void HttpCommTask::signalTask(TaskData* data) {
   // data response
   if (data->_type == TaskData::TASK_DATA_RESPONSE) {
@@ -825,7 +826,9 @@ void HttpCommTask::signalTask(TaskData* data) {
     _scheduler->destroyTask(this);
   }
 }
+#endif
 
+#if 0
 bool HttpCommTask::handleRead() {
   bool res = true;
 
@@ -851,10 +854,11 @@ bool HttpCommTask::handleRead() {
 
   return res;
 }
+#endif
 
 void HttpCommTask::completedWriteBuffer() {
   _writeBuffer = nullptr;
-  _writeLength = 0;
+  // _writeLength = 0;
 
   if (_writeBufferStatistics != nullptr) {
     _writeBufferStatistics->_writeEnd = TRI_StatisticsTime();
@@ -864,10 +868,12 @@ void HttpCommTask::completedWriteBuffer() {
 
   fillWriteBuffer();
 
+#if 0
   if (!_clientClosed && _closeRequested && !hasWriteBuffer() &&
       _writeBuffers.empty() && !_isChunked) {
     _clientClosed = true;
   }
+#endif
 }
 
 void HttpCommTask::resetState(bool close) {
@@ -920,7 +926,8 @@ GeneralResponse::ResponseCode HttpCommTask::authenticateRequest() {
   auto context = (_request == nullptr) ? nullptr : _request->requestContext();
 
   if (context == nullptr && _request != nullptr) {
-    bool res = GeneralServerFeature::HANDLER_FACTORY->setRequestContext(_request);
+    bool res =
+        GeneralServerFeature::HANDLER_FACTORY->setRequestContext(_request);
 
     if (!res) {
       return GeneralResponse::ResponseCode::NOT_FOUND;

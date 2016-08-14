@@ -376,6 +376,11 @@ class Scheduler : private TaskManager {
   //////////////////////////////////////////////////////////////////////////////
 
   size_t _affinityPos = 0;
+
+  // list of all tasks
+public:
+  EventLoop2 anyEventLoop();
+  
 };
 }
 }

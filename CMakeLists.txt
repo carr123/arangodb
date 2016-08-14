@@ -691,6 +691,10 @@ endif ()
 include_directories(${Boost_INCLUDE_DIR})
 add_definitions(-DARANGODB_BOOST_VERSION=\"${Boost_VERSION}\")
 
+set(BOOST_LIBS
+  "${PROJECT_SOURCE_DIR}/3rdParty/boost/${Boost_VERSION}/stage/lib/libboost_system.a"
+)
+
 ################################################################################
 ## ICU
 ################################################################################

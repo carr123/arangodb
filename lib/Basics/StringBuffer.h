@@ -25,6 +25,7 @@
 #define ARANGODB_BASICS_STRING_BUFFER_H 1
 
 #include "Basics/Common.h"
+
 #include "Logger/Logger.h"
 #include "Zip/zip.h"
 

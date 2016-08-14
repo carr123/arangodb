@@ -28,6 +28,7 @@
 #include "Basics/win-utils.h"
 #endif
 
+#undef EV_ERROR
 #include <ev.h>
 
 #include "Basics/Exceptions.h"

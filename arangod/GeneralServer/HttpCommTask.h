@@ -2,6 +2,9 @@
 #define ARANGOD_GENERAL_SERVER_HTTP_COMM_TASK_H 1
 
 #include "GeneralServer/GeneralCommTask.h"
+
+#include "Rest/HttpResponse.h"
+
 namespace arangodb {
 namespace rest {
 
@@ -13,7 +16,7 @@ class HttpCommTask : public GeneralCommTask {
   static size_t const RunCompactEvery;
 
  public:
-  HttpCommTask(GeneralServer*, TRI_socket_t, ConnectionInfo&&, double timeout);
+  HttpCommTask(EventLoop2, GeneralServer*, TRI_socket_t, ConnectionInfo&&, double timeout);
 
   bool processRead() override;
   virtual void processRequest() override;
@@ -32,7 +35,7 @@ class HttpCommTask : public GeneralCommTask {
   void completedWriteBuffer() override final;
 
  private:
-  void signalTask(TaskData*) override final;
+  // void signalTask(TaskData*) override final;
   // resets the internal state
   // this method can be called to clean up when the request handling aborts
   // prematurely
@@ -49,7 +52,7 @@ class HttpCommTask : public GeneralCommTask {
   GeneralResponse::ResponseCode
   authenticateRequest();                  // checks the authentication
   void sendChunk(basics::StringBuffer*);  // sends more chunked data
-  bool handleRead() override final;
+  // bool handleRead() override final;
 
  private:
   size_t _readPosition;   // current read position

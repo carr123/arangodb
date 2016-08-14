@@ -45,10 +45,11 @@ using namespace arangodb::rest;
 /// @brief static initializers
 ////////////////////////////////////////////////////////////////////////////////
 
-GeneralCommTask::GeneralCommTask(GeneralServer* server, TRI_socket_t socket,
-                                 ConnectionInfo&& info, double keepAliveTimeout)
-    : Task("GeneralCommTask"),
-      SocketTask(socket, keepAliveTimeout),
+GeneralCommTask::GeneralCommTask(EventLoop2 loop, GeneralServer* server,
+                                 TRI_socket_t socket, ConnectionInfo&& info,
+                                 double keepAliveTimeout)
+    : Task2(loop, "GeneralCommTask"),
+      SocketTask2(loop, socket, keepAliveTimeout),
       _server(server),
       _request(nullptr),
       _connectionInfo(std::move(info)),
@@ -68,8 +69,8 @@ GeneralCommTask::GeneralCommTask(GeneralServer* server, TRI_socket_t socket,
 }
 
 GeneralCommTask::~GeneralCommTask() {
-  LOG(TRACE) << "connection closed, client "
-             << TRI_get_fd_or_handle_of_socket(_commSocket);
+  //  LOG(TRACE) << "connection closed, client "
+  //             << TRI_get_fd_or_handle_of_socket(_commSocket);
 
   // free write buffers and statistics
   for (auto& i : _writeBuffers) delete i;
@@ -121,10 +122,14 @@ void GeneralCommTask::handleSimpleError(
   }
 }
 
+/*
 bool GeneralCommTask::handleEvent(EventToken token, EventType events) {
   bool result = SocketTask::handleEvent(token, events);
   if (_clientClosed) _scheduler->destroyTask(this);
   return result;
 }
+*/
 
+/*
 void GeneralCommTask::handleTimeout() { _clientClosed = true; }
+*/
