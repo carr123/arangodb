@@ -44,18 +44,19 @@
 using namespace arangodb::basics;
 using namespace arangodb::rest;
 
-boost::asio::io_service IO_SERVICE;
+void runThread(boost::asio::io_service* service) {
+  boost::shared_ptr<boost::asio::io_service::work> work(new boost::asio::io_service::work(*service));
 
-boost::shared_ptr<boost::asio::io_service::work> IO_WORK(
-    new boost::asio::io_service::work(IO_SERVICE));
-
-void runThread() {
   LOG(ERR) << "running";
-  IO_SERVICE.run();
+  service->run();
   LOG(ERR) << "stopped";
 }
 
-EventLoop2 Scheduler::anyEventLoop() { return {._ioService = IO_SERVICE}; }
+std::atomic<size_t> C(0);
+
+std::vector<boost::asio::io_service*> S;
+
+EventLoop2 Scheduler::anyEventLoop() { size_t n = C++; n = n % S.size(); return {._ioService = *S[n] }; }
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief scheduler singleton
@@ -135,7 +136,12 @@ bool Scheduler::start(ConditionVariable* cv) {
     }
   }
 
-  new std::thread(runThread);
+  for (size_t i = 0; i < nrThreads; ++i) {
+    auto io = new boost::asio::io_service();
+    S.push_back(io);
+ 
+    new std::thread(std::bind(runThread, io));
+  }
 
   LOG(TRACE) << "all scheduler threads are up and running";
   return true;
