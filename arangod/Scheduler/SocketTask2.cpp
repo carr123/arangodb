@@ -72,7 +72,7 @@ void SocketTask2::start() {
   }
 
   LOG(ERR) << "### startRead";
-  asyncReadSome();
+  _loop._ioService.post([this]() {asyncReadSome();});
 }
 
 void SocketTask2::asyncReadSome() {
