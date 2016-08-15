@@ -182,6 +182,8 @@ bool HttpCommTask::processRead() {
     return false;
   }
 
+  LOG(ERR) << (_readBuffer->begin() + _readPosition);
+
   bool handleRequest = false;
 
   // still trying to read the header fields
@@ -729,6 +731,8 @@ bool HttpCommTask::checkContentLength(bool expectContentLength) {
 }
 
 void HttpCommTask::fillWriteBuffer() {
+  LOG(ERR) << "fillWriteBuffer";
+
   if (!hasWriteBuffer() && !_writeBuffers.empty()) {
     StringBuffer* buffer = _writeBuffers.front();
     _writeBuffers.pop_front();

@@ -209,6 +209,7 @@ class SocketTask2 : virtual public Task2, public ConnectionStatisticsAgent {
   boost::asio::ip::tcp::socket _stream;
 
   void asyncReadSome();
+  void syncReadSome();
   void closeStream();
   void closeSendStream();
 

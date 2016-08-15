@@ -72,7 +72,52 @@ void SocketTask2::start() {
   }
 
   LOG(ERR) << "### startRead";
-  _loop._ioService.post([this]() {asyncReadSome();});
+  _loop._ioService.post([this]() { syncReadSome(); });
+}
+
+void SocketTask2::syncReadSome() {
+  while (true) {
+    // reserve some memory for reading
+    if (_readBuffer->reserve(READ_BLOCK_SIZE + 1) == TRI_ERROR_OUT_OF_MEMORY) {
+      LOG(WARN) << "out of memory while reading from client";
+      closeStream();
+      return;
+    }
+
+    boost::system::error_code ec;
+    size_t n = boost::asio::read(
+        _stream, boost::asio::buffer(_readBuffer->end(), READ_BLOCK_SIZE),
+        [](const boost::system::error_code const& ec, std::size_t transferred) {
+          return 0 < transferred ? 0 : READ_BLOCK_SIZE;
+        },
+        ec);
+
+    if (ec) {
+      LOG(DEBUG) << "read on stream " << _stream.native_handle()
+                 << " failed with " << ec;
+      closeStream();
+      return;
+    }
+
+    LOG(ERR) << "read # " << n << "bytes";
+
+    _readBuffer->increaseLength(n);
+
+    while (processRead()) {
+      LOG(ERR) << "STILL PROCESSING";
+
+      if (_closeRequested) {
+        break;
+      }
+    }
+
+    LOG(ERR) << "PROCESSING DONE";
+
+    if (_closeRequested) {
+      closeSendStream();
+      return;
+    }
+  }
 }
 
 void SocketTask2::asyncReadSome() {
@@ -306,6 +351,8 @@ bool SocketTask2::handleWrite() {
 
 void SocketTask2::setWriteBuffer(StringBuffer* buffer,
                                  TRI_request_statistics_t* statistics) {
+  LOG(ERR) << "setWriteBuffer";
+
   TRI_ASSERT(buffer != nullptr);
 
   _writeBufferStatistics = statistics;
@@ -330,6 +377,7 @@ void SocketTask2::setWriteBuffer(StringBuffer* buffer,
   }
 
   if (_writeBuffer != nullptr) {
+#if 0
     boost::asio::async_write(
         _stream,
         boost::asio::buffer(_writeBuffer->begin(), _writeBuffer->length()),
@@ -341,10 +389,30 @@ void SocketTask2::setWriteBuffer(StringBuffer* buffer,
           } else {
             delete _writeBuffer;
             _writeBuffer = nullptr;
-            
+
             completedWriteBuffer();
           }
         });
+#else
+    LOG(ERR) << "completed write buffer";
+    
+    boost::system::error_code ec;
+
+    size_t n = boost::asio::write(
+        _stream,
+        boost::asio::buffer(_writeBuffer->begin(), _writeBuffer->length()), ec);
+
+    if (ec) {
+      LOG(DEBUG) << "read on stream " << _stream.native_handle()
+                 << " failed with " << ec;
+      closeStream();
+    } else {
+      delete _writeBuffer;
+      _writeBuffer = nullptr;
+
+      completedWriteBuffer();
+    }
+#endif
   }
 }
 
