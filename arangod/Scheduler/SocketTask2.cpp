@@ -58,6 +58,18 @@ SocketTask2::SocketTask2(EventLoop2 loop, TRI_socket_t socket,
   } else {
     LOG(ERR) << "ASSIGNED " << socket.fileDescriptor;
   }
+
+#if 0
+  _stream.non_blocking(false, ec);
+
+  if (ec) {
+    LOG(ERR) << "cannot socket to non_blocking" << ec;
+    _closedSend = true;
+    _closedReceive = true;
+  } else {
+    LOG(ERR) << "ASSIGNED " << socket.fileDescriptor;
+  }
+#endif
 }
 
 void SocketTask2::start() {
@@ -72,7 +84,7 @@ void SocketTask2::start() {
   }
 
   LOG(ERR) << "### startRead";
-  _loop._ioService.post([this]() { syncReadSome(); });
+  _loop._ioService.post([this]() { asyncReadSome(); });
 }
 
 void SocketTask2::syncReadSome() {
@@ -87,7 +99,7 @@ void SocketTask2::syncReadSome() {
     boost::system::error_code ec;
     size_t n = boost::asio::read(
         _stream, boost::asio::buffer(_readBuffer->end(), READ_BLOCK_SIZE),
-        [](const boost::system::error_code const& ec, std::size_t transferred) {
+        [](boost::system::error_code const& ec, std::size_t transferred) {
           return 0 < transferred ? 0 : READ_BLOCK_SIZE;
         },
         ec);
@@ -99,19 +111,13 @@ void SocketTask2::syncReadSome() {
       return;
     }
 
-    LOG(ERR) << "read # " << n << "bytes";
-
     _readBuffer->increaseLength(n);
 
     while (processRead()) {
-      LOG(ERR) << "STILL PROCESSING";
-
       if (_closeRequested) {
         break;
       }
     }
-
-    LOG(ERR) << "PROCESSING DONE";
 
     if (_closeRequested) {
       closeSendStream();
@@ -351,8 +357,6 @@ bool SocketTask2::handleWrite() {
 
 void SocketTask2::setWriteBuffer(StringBuffer* buffer,
                                  TRI_request_statistics_t* statistics) {
-  LOG(ERR) << "setWriteBuffer";
-
   TRI_ASSERT(buffer != nullptr);
 
   _writeBufferStatistics = statistics;
@@ -377,7 +381,7 @@ void SocketTask2::setWriteBuffer(StringBuffer* buffer,
   }
 
   if (_writeBuffer != nullptr) {
-#if 0
+#if 1
     boost::asio::async_write(
         _stream,
         boost::asio::buffer(_writeBuffer->begin(), _writeBuffer->length()),
@@ -394,8 +398,6 @@ void SocketTask2::setWriteBuffer(StringBuffer* buffer,
           }
         });
 #else
-    LOG(ERR) << "completed write buffer";
-    
     boost::system::error_code ec;
 
     size_t n = boost::asio::write(
